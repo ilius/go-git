@@ -22,6 +22,7 @@ func Test(t *testing.T) { TestingT(t) }
 type BaseSuite struct {
 	fixtures.Suite
 	Repository *Repository
+	Worktree   *Worktree
 
 	backupProtocol transport.Transport
 	cache          map[string]*Repository
@@ -40,6 +41,11 @@ func (s *BaseSuite) TearDownSuite(c *C) {
 func (s *BaseSuite) buildBasicRepository(c *C) {
 	f := fixtures.Basic().One()
 	s.Repository = s.NewRepository(f)
+	worktree, err := s.Repository.Worktree()
+	if err != nil {
+		panic(err)
+	}
+	s.Worktree = worktree
 }
 
 // NewRepository returns a new repository using the .git folder, if the fixture

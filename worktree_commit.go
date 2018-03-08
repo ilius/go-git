@@ -6,12 +6,12 @@ import (
 	"sort"
 	"strings"
 
-	"golang.org/x/crypto/openpgp"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/filemode"
 	"github.com/go-git/go-git/v5/plumbing/format/index"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/go-git/go-git/v5/storage"
+	"golang.org/x/crypto/openpgp"
 
 	"github.com/go-git/go-billy/v5"
 )
@@ -19,7 +19,7 @@ import (
 // Commit stores the current contents of the index in a new commit along with
 // a log message from the user describing the changes.
 func (w *Worktree) Commit(msg string, opts *CommitOptions) (plumbing.Hash, error) {
-	if err := opts.Validate(w.r); err != nil {
+	if err := opts.Validate(w); err != nil {
 		return plumbing.ZeroHash, err
 	}
 
@@ -29,14 +29,14 @@ func (w *Worktree) Commit(msg string, opts *CommitOptions) (plumbing.Hash, error
 		}
 	}
 
-	idx, err := w.r.Storer.Index()
+	idx, err := w.Storer.Index()
 	if err != nil {
 		return plumbing.ZeroHash, err
 	}
 
 	h := &buildTreeHelper{
 		fs: w.Filesystem,
-		s:  w.r.Storer,
+		s:  w.Storer,
 	}
 
 	tree, err := h.BuildTree(idx)
@@ -72,7 +72,7 @@ func (w *Worktree) autoAddModifiedAndDeleted() error {
 }
 
 func (w *Worktree) updateHEAD(commit plumbing.Hash) error {
-	head, err := w.r.Storer.Reference(plumbing.HEAD)
+	head, err := w.Storer.Reference(plumbing.HEAD)
 	if err != nil {
 		return err
 	}
@@ -83,7 +83,7 @@ func (w *Worktree) updateHEAD(commit plumbing.Hash) error {
 	}
 
 	ref := plumbing.NewHashReference(name, commit)
-	return w.r.Storer.SetReference(ref)
+	return w.Storer.SetReference(ref)
 }
 
 func (w *Worktree) buildCommitObject(msg string, opts *CommitOptions, tree plumbing.Hash) (plumbing.Hash, error) {
@@ -103,11 +103,11 @@ func (w *Worktree) buildCommitObject(msg string, opts *CommitOptions, tree plumb
 		commit.PGPSignature = sig
 	}
 
-	obj := w.r.Storer.NewEncodedObject()
+	obj := w.Storer.NewEncodedObject()
 	if err := commit.Encode(obj); err != nil {
 		return plumbing.ZeroHash, err
 	}
-	return w.r.Storer.SetEncodedObject(obj)
+	return w.Storer.SetEncodedObject(obj)
 }
 
 func (w *Worktree) buildCommitSignature(commit *object.Commit, signKey *openpgp.Entity) (string, error) {

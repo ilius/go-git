@@ -11,6 +11,19 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/go-git/go-billy.v4"
+	"github.com/go-git/go-billy.v4/util"
+	"github.com/go-git/go-billy/v5"
+	"github.com/go-git/go-billy/v5/util"
+	"github.com/go-git/go-git.v4/config"
+	"github.com/go-git/go-git.v4/plumbing"
+	"github.com/go-git/go-git.v4/plumbing/filemode"
+	"github.com/go-git/go-git.v4/plumbing/format/index"
+	"github.com/go-git/go-git.v4/plumbing/object"
+	"github.com/go-git/go-git.v4/plumbing/storer"
+	"github.com/go-git/go-git.v4/storage"
+	"github.com/go-git/go-git.v4/utils/ioutil"
+	"github.com/go-git/go-git.v4/utils/merkletrie"
 	"github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/filemode"
@@ -20,9 +33,6 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/storer"
 	"github.com/go-git/go-git/v5/utils/ioutil"
 	"github.com/go-git/go-git/v5/utils/merkletrie"
-
-	"github.com/go-git/go-billy/v5"
-	"github.com/go-git/go-billy/v5/util"
 )
 
 var (
@@ -40,7 +50,7 @@ type Worktree struct {
 	// External excludes not found in the repository .gitignore
 	Excludes []gitignore.Pattern
 
-	r *Repository
+	Storer storage.Storer
 }
 
 // Pull incorporates changes from a remote repository into the current branch.
@@ -50,6 +60,37 @@ type Worktree struct {
 // Pull only supports merges where the can be resolved as a fast-forward.
 func (w *Worktree) Pull(o *PullOptions) error {
 	return w.PullContext(context.Background(), o)
+}
+
+// Remote return a remote if exists
+func (w *Worktree) Remote(name string) (*Remote, error) {
+	cfg, err := w.Storer.Config()
+	if err != nil {
+		return nil, err
+	}
+
+	c, ok := cfg.Remotes[name]
+	if !ok {
+		return nil, ErrRemoteNotFound
+	}
+
+	return newRemote(w.Storer, c), nil
+}
+
+// Object returns an Object with the given hash. If not found
+// plumbing.ErrObjectNotFound is returned.
+func (w *Worktree) Object(t plumbing.ObjectType, h plumbing.Hash) (object.Object, error) {
+	obj, err := w.Storer.EncodedObject(t, h)
+	if err != nil {
+		return nil, err
+	}
+
+	return object.DecodeObject(w.Storer, obj)
+}
+
+// Head returns the reference where HEAD is pointing to.
+func (w *Worktree) Head() (*plumbing.Reference, error) {
+	return storer.ResolveReference(w.Storer, plumbing.HEAD)
 }
 
 // PullContext incorporates changes from a remote repository into the current
@@ -66,7 +107,7 @@ func (w *Worktree) PullContext(ctx context.Context, o *PullOptions) error {
 		return err
 	}
 
-	remote, err := w.r.Remote(o.RemoteName)
+	remote, err := w.Remote(o.RemoteName)
 	if err != nil {
 		return err
 	}
@@ -91,13 +132,13 @@ func (w *Worktree) PullContext(ctx context.Context, o *PullOptions) error {
 		return err
 	}
 
-	head, err := w.r.Head()
+	head, err := w.Head()
 	if err == nil {
 		if !updated && head.Hash() == ref.Hash() {
 			return NoErrAlreadyUpToDate
 		}
 
-		ff, err := isFastForward(w.r.Storer, head.Hash(), ref.Hash())
+		ff, err := isFastForward(w.Storer, head.Hash(), ref.Hash())
 		if err != nil {
 			return err
 		}
@@ -178,7 +219,7 @@ func (w *Worktree) Checkout(opts *CheckoutOptions) error {
 	return w.Reset(ro)
 }
 func (w *Worktree) createBranch(opts *CheckoutOptions) error {
-	_, err := w.r.Storer.Reference(opts.Branch)
+	_, err := w.Storer.Reference(opts.Branch)
 	if err == nil {
 		return fmt.Errorf("a branch named %q already exists", opts.Branch)
 	}
@@ -188,7 +229,7 @@ func (w *Worktree) createBranch(opts *CheckoutOptions) error {
 	}
 
 	if opts.Hash.IsZero() {
-		ref, err := w.r.Head()
+		ref, err := w.Head()
 		if err != nil {
 			return err
 		}
@@ -196,7 +237,7 @@ func (w *Worktree) createBranch(opts *CheckoutOptions) error {
 		opts.Hash = ref.Hash()
 	}
 
-	return w.r.Storer.SetReference(
+	return w.Storer.SetReference(
 		plumbing.NewHashReference(opts.Branch, opts.Hash),
 	)
 }
@@ -206,7 +247,7 @@ func (w *Worktree) getCommitFromCheckoutOptions(opts *CheckoutOptions) (plumbing
 		return opts.Hash, nil
 	}
 
-	b, err := w.r.Reference(opts.Branch, true)
+	b, err := storer.ResolveReference(w.Storer, opts.Branch)
 	if err != nil {
 		return plumbing.ZeroHash, err
 	}
@@ -215,7 +256,7 @@ func (w *Worktree) getCommitFromCheckoutOptions(opts *CheckoutOptions) (plumbing
 		return b.Hash(), nil
 	}
 
-	o, err := w.r.Object(plumbing.AnyObject, b.Hash())
+	o, err := w.Object(plumbing.AnyObject, b.Hash())
 	if err != nil {
 		return plumbing.ZeroHash, err
 	}
@@ -236,11 +277,11 @@ func (w *Worktree) getCommitFromCheckoutOptions(opts *CheckoutOptions) (plumbing
 
 func (w *Worktree) setHEADToCommit(commit plumbing.Hash) error {
 	head := plumbing.NewHashReference(plumbing.HEAD, commit)
-	return w.r.Storer.SetReference(head)
+	return w.Storer.SetReference(head)
 }
 
 func (w *Worktree) setHEADToBranch(branch plumbing.ReferenceName, commit plumbing.Hash) error {
-	target, err := w.r.Storer.Reference(branch)
+	target, err := w.Storer.Reference(branch)
 	if err != nil {
 		return err
 	}
@@ -252,12 +293,12 @@ func (w *Worktree) setHEADToBranch(branch plumbing.ReferenceName, commit plumbin
 		head = plumbing.NewHashReference(plumbing.HEAD, commit)
 	}
 
-	return w.r.Storer.SetReference(head)
+	return w.Storer.SetReference(head)
 }
 
 // Reset the worktree to a specified state.
 func (w *Worktree) Reset(opts *ResetOptions) error {
-	if err := opts.Validate(w.r); err != nil {
+	if err := opts.Validate(w); err != nil { // FIXME
 		return err
 	}
 
@@ -301,7 +342,7 @@ func (w *Worktree) Reset(opts *ResetOptions) error {
 }
 
 func (w *Worktree) resetIndex(t *object.Tree) error {
-	idx, err := w.r.Storer.Index()
+	idx, err := w.Storer.Index()
 	if err != nil {
 		return err
 	}
@@ -346,7 +387,7 @@ func (w *Worktree) resetIndex(t *object.Tree) error {
 	}
 
 	b.Write(idx)
-	return w.r.Storer.SetIndex(idx)
+	return w.Storer.SetIndex(idx)
 }
 
 func (w *Worktree) resetWorktree(t *object.Tree) error {
@@ -355,7 +396,7 @@ func (w *Worktree) resetWorktree(t *object.Tree) error {
 		return err
 	}
 
-	idx, err := w.r.Storer.Index()
+	idx, err := w.Storer.Index()
 	if err != nil {
 		return err
 	}
@@ -368,7 +409,7 @@ func (w *Worktree) resetWorktree(t *object.Tree) error {
 	}
 
 	b.Write(idx)
-	return w.r.Storer.SetIndex(idx)
+	return w.Storer.SetIndex(idx)
 }
 
 func (w *Worktree) checkoutChange(ch merkletrie.Change, t *object.Tree, idx *indexBuilder) error {
@@ -424,17 +465,17 @@ func (w *Worktree) containsUnstagedChanges() (bool, error) {
 }
 
 func (w *Worktree) setHEADCommit(commit plumbing.Hash) error {
-	head, err := w.r.Reference(plumbing.HEAD, false)
+	head, err := w.Storer.Reference(plumbing.HEAD)
 	if err != nil {
 		return err
 	}
 
 	if head.Type() == plumbing.HashReference {
 		head = plumbing.NewHashReference(plumbing.HEAD, commit)
-		return w.r.Storer.SetReference(head)
+		return w.Storer.SetReference(head)
 	}
 
-	branch, err := w.r.Reference(head.Target(), false)
+	branch, err := w.Storer.Reference(head.Target())
 	if err != nil {
 		return err
 	}
@@ -444,7 +485,7 @@ func (w *Worktree) setHEADCommit(commit plumbing.Hash) error {
 	}
 
 	branch = plumbing.NewHashReference(branch.Name(), commit)
-	return w.r.Storer.SetReference(branch)
+	return w.Storer.SetReference(branch)
 }
 
 func (w *Worktree) checkoutChangeSubmodule(name string,
@@ -621,7 +662,7 @@ func (w *Worktree) addIndexFromFile(name string, h plumbing.Hash, idx *indexBuil
 }
 
 func (w *Worktree) getTreeFromCommitHash(commit plumbing.Hash) (*object.Tree, error) {
-	c, err := w.r.CommitObject(commit)
+	c, err := object.GetCommit(w.Storer, commit)
 	if err != nil {
 		return nil, err
 	}
@@ -657,7 +698,7 @@ func (w *Worktree) Submodules() (Submodules, error) {
 		return l, err
 	}
 
-	c, err := w.r.Config()
+	c, err := w.Storer.Config()
 	if err != nil {
 		return nil, err
 	}
@@ -795,7 +836,7 @@ func (w *Worktree) Grep(opts *GrepOptions) ([]GrepResult, error) {
 	var treeName string
 
 	if opts.ReferenceName != "" {
-		ref, err := w.r.Reference(opts.ReferenceName, true)
+		ref, err := storer.ResolveReference(w.Storer, opts.ReferenceName)
 		if err != nil {
 			return nil, err
 		}

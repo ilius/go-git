@@ -19,16 +19,22 @@ var _ = Suite(&OptionsSuite{})
 
 func (s *OptionsSuite) TestCommitOptionsParentsFromHEAD(c *C) {
 	o := CommitOptions{Author: &object.Signature{}}
-	err := o.Validate(s.Repository)
+	err := o.Validate(s.Worktree)
 	c.Assert(err, IsNil)
 	c.Assert(o.Parents, HasLen, 1)
+}
+
+func (s *OptionsSuite) TestCommitOptionsMissingAuthor(c *C) {
+	o := CommitOptions{}
+	err := o.Validate(s.Worktree)
+	c.Assert(err, Equals, ErrMissingAuthor)
 }
 
 func (s *OptionsSuite) TestCommitOptionsCommitter(c *C) {
 	sig := &object.Signature{}
 
 	o := CommitOptions{Author: sig}
-	err := o.Validate(s.Repository)
+	err := o.Validate(s.Worktree)
 	c.Assert(err, IsNil)
 
 	c.Assert(o.Committer, Equals, o.Author)

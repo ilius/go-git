@@ -35,7 +35,7 @@ func (s *Submodule) Config() *config.Submodule {
 // Init initialize the submodule reading the recorded Entry in the index for
 // the given submodule
 func (s *Submodule) Init() error {
-	cfg, err := s.w.r.Config()
+	cfg, err := s.w.Storer.Config()
 	if err != nil {
 		return err
 	}
@@ -48,12 +48,12 @@ func (s *Submodule) Init() error {
 	s.initialized = true
 
 	cfg.Submodules[s.c.Name] = s.c
-	return s.w.r.Storer.SetConfig(cfg)
+	return s.w.Storer.SetConfig(cfg)
 }
 
 // Status returns the status of the submodule.
 func (s *Submodule) Status() (*SubmoduleStatus, error) {
-	idx, err := s.w.r.Storer.Index()
+	idx, err := s.w.Storer.Index()
 	if err != nil {
 		return nil, err
 	}
@@ -102,7 +102,7 @@ func (s *Submodule) Repository() (*Repository, error) {
 		return nil, ErrSubmoduleNotInitialized
 	}
 
-	storer, err := s.w.r.Storer.Module(s.c.Name)
+	storer, err := s.w.Storer.Module(s.c.Name)
 	if err != nil {
 		return nil, err
 	}
@@ -168,7 +168,7 @@ func (s *Submodule) update(ctx context.Context, o *SubmoduleUpdateOptions, force
 		}
 	}
 
-	idx, err := s.w.r.Storer.Index()
+	idx, err := s.w.Storer.Index()
 	if err != nil {
 		return err
 	}
@@ -278,13 +278,8 @@ func (s Submodules) UpdateContext(ctx context.Context, o *SubmoduleUpdateOptions
 func (s Submodules) Status() (SubmodulesStatus, error) {
 	var list SubmodulesStatus
 
-	var r *Repository
 	for _, sub := range s {
-		if r == nil {
-			r = sub.w.r
-		}
-
-		idx, err := r.Storer.Index()
+		idx, err := sub.w.Storer.Index()
 		if err != nil {
 			return nil, err
 		}

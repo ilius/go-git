@@ -34,7 +34,7 @@ var (
 func (w *Worktree) Status() (Status, error) {
 	var hash plumbing.Hash
 
-	ref, err := w.r.Head()
+	ref, err := w.Head()
 	if err != nil && err != plumbing.ErrReferenceNotFound {
 		return nil, err
 	}
@@ -113,7 +113,7 @@ func nameFromAction(ch *merkletrie.Change) string {
 }
 
 func (w *Worktree) diffStagingWithWorktree(reverse bool) (merkletrie.Changes, error) {
-	idx, err := w.r.Storer.Index()
+	idx, err := w.Storer.Index()
 	if err != nil {
 		return nil, err
 	}
@@ -204,7 +204,7 @@ func (w *Worktree) getSubmodulesStatus() (map[string]plumbing.Hash, error) {
 func (w *Worktree) diffCommitWithStaging(commit plumbing.Hash, reverse bool) (merkletrie.Changes, error) {
 	var t *object.Tree
 	if !commit.IsZero() {
-		c, err := w.r.CommitObject(commit)
+		c, err := object.GetCommit(w.Storer, commit)
 		if err != nil {
 			return nil, err
 		}
@@ -224,7 +224,7 @@ func (w *Worktree) diffTreeWithStaging(t *object.Tree, reverse bool) (merkletrie
 		from = object.NewTreeRootNode(t)
 	}
 
-	idx, err := w.r.Storer.Index()
+	idx, err := w.Storer.Index()
 	if err != nil {
 		return nil, err
 	}
@@ -270,7 +270,7 @@ func (w *Worktree) Add(path string) (plumbing.Hash, error) {
 		return plumbing.ZeroHash, err
 	}
 
-	idx, err := w.r.Storer.Index()
+	idx, err := w.Storer.Index()
 	if err != nil {
 		return plumbing.ZeroHash, err
 	}
@@ -293,7 +293,7 @@ func (w *Worktree) Add(path string) (plumbing.Hash, error) {
 		return h, nil
 	}
 
-	return h, w.r.Storer.SetIndex(idx)
+	return h, w.Storer.SetIndex(idx)
 }
 
 func (w *Worktree) doAddDirectory(idx *index.Index, s Status, directory string) (added bool, err error) {
@@ -346,7 +346,7 @@ func (w *Worktree) AddGlob(pattern string) error {
 		return err
 	}
 
-	idx, err := w.r.Storer.Index()
+	idx, err := w.Storer.Index()
 	if err != nil {
 		return err
 	}
@@ -375,7 +375,7 @@ func (w *Worktree) AddGlob(pattern string) error {
 	}
 
 	if saveIndex {
-		return w.r.Storer.SetIndex(idx)
+		return w.Storer.SetIndex(idx)
 	}
 
 	return nil
@@ -411,7 +411,7 @@ func (w *Worktree) copyFileToStorage(path string) (hash plumbing.Hash, err error
 		return plumbing.ZeroHash, err
 	}
 
-	obj := w.r.Storer.NewEncodedObject()
+	obj := w.Storer.NewEncodedObject()
 	obj.SetType(plumbing.BlobObject)
 	obj.SetSize(fi.Size())
 
@@ -432,7 +432,7 @@ func (w *Worktree) copyFileToStorage(path string) (hash plumbing.Hash, err error
 		return plumbing.ZeroHash, err
 	}
 
-	return w.r.Storer.SetEncodedObject(obj)
+	return w.Storer.SetEncodedObject(obj)
 }
 
 func (w *Worktree) fillEncodedObjectFromFile(dst io.Writer, path string, fi os.FileInfo) (err error) {
@@ -501,7 +501,7 @@ func (w *Worktree) doUpdateFileToIndex(e *index.Entry, filename string, h plumbi
 // Remove removes files from the working tree and from the index.
 func (w *Worktree) Remove(path string) (plumbing.Hash, error) {
 	// TODO(mcuadros): remove plumbing.Hash from signature at v5.
-	idx, err := w.r.Storer.Index()
+	idx, err := w.Storer.Index()
 	if err != nil {
 		return plumbing.ZeroHash, err
 	}
@@ -518,7 +518,7 @@ func (w *Worktree) Remove(path string) (plumbing.Hash, error) {
 		return h, err
 	}
 
-	return h, w.r.Storer.SetIndex(idx)
+	return h, w.Storer.SetIndex(idx)
 }
 
 func (w *Worktree) doRemoveDirectory(idx *index.Index, directory string) (removed bool, err error) {
@@ -597,7 +597,7 @@ func (w *Worktree) deleteFromFilesystem(path string) error {
 // matches a directory path, all directory contents are removed from the index
 // recursively.
 func (w *Worktree) RemoveGlob(pattern string) error {
-	idx, err := w.r.Storer.Index()
+	idx, err := w.Storer.Index()
 	if err != nil {
 		return err
 	}
@@ -623,7 +623,7 @@ func (w *Worktree) RemoveGlob(pattern string) error {
 		}
 	}
 
-	return w.r.Storer.SetIndex(idx)
+	return w.Storer.SetIndex(idx)
 }
 
 // Move moves or rename a file in the worktree and the index, directories are
@@ -638,7 +638,7 @@ func (w *Worktree) Move(from, to string) (plumbing.Hash, error) {
 		return plumbing.ZeroHash, ErrDestinationExists
 	}
 
-	idx, err := w.r.Storer.Index()
+	idx, err := w.Storer.Index()
 	if err != nil {
 		return plumbing.ZeroHash, err
 	}
@@ -656,5 +656,5 @@ func (w *Worktree) Move(from, to string) (plumbing.Hash, error) {
 		return hash, err
 	}
 
-	return hash, w.r.Storer.SetIndex(idx)
+	return hash, w.Storer.SetIndex(idx)
 }

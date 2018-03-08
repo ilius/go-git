@@ -309,9 +309,9 @@ type ResetOptions struct {
 }
 
 // Validate validates the fields and sets the default values.
-func (o *ResetOptions) Validate(r *Repository) error {
+func (o *ResetOptions) Validate(w *Worktree) error {
 	if o.Commit == plumbing.ZeroHash {
-		ref, err := r.Head()
+		ref, err := w.Head()
 		if err != nil {
 			return err
 		}
@@ -394,7 +394,7 @@ type CommitOptions struct {
 }
 
 // Validate validates the fields and sets the default values.
-func (o *CommitOptions) Validate(r *Repository) error {
+func (o *CommitOptions) Validate(w *Worktree) error {
 	if o.Author == nil {
 		if err := o.loadConfigAuthorAndCommitter(r); err != nil {
 			return err
@@ -406,7 +406,7 @@ func (o *CommitOptions) Validate(r *Repository) error {
 	}
 
 	if len(o.Parents) == 0 {
-		head, err := r.Head()
+		head, err := w.Head()
 		if err != nil && err != plumbing.ErrReferenceNotFound {
 			return err
 		}
@@ -561,7 +561,7 @@ func (o *GrepOptions) Validate(w *Worktree) error {
 	// If none of CommitHash and ReferenceName are provided, set commit hash of
 	// the repository's head.
 	if o.CommitHash.IsZero() && o.ReferenceName == "" {
-		ref, err := w.r.Head()
+		ref, err := w.Head()
 		if err != nil {
 			return err
 		}

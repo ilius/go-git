@@ -268,8 +268,8 @@ func (s *RepositorySuite) TestPullAdd(c *C) {
 func (s *WorktreeSuite) TestCheckout(c *C) {
 	fs := memfs.New()
 	w := &Worktree{
-		r:          s.Repository,
 		Filesystem: fs,
+		Storer:     s.Repository.Storer,
 	}
 
 	err := w.Checkout(&CheckoutOptions{
@@ -295,8 +295,8 @@ func (s *WorktreeSuite) TestCheckout(c *C) {
 
 func (s *WorktreeSuite) TestCheckoutForce(c *C) {
 	w := &Worktree{
-		r:          s.Repository,
 		Filesystem: memfs.New(),
+		Storer:     s.Repository.Storer,
 	}
 
 	err := w.Checkout(&CheckoutOptions{})
@@ -502,8 +502,8 @@ func (s *WorktreeSuite) TestCheckoutSubmoduleInitialized(c *C) {
 func (s *WorktreeSuite) TestCheckoutIndexMem(c *C) {
 	fs := memfs.New()
 	w := &Worktree{
-		r:          s.Repository,
 		Filesystem: fs,
+		Storer:     s.Repository.Storer,
 	}
 
 	err := w.Checkout(&CheckoutOptions{})
@@ -533,8 +533,8 @@ func (s *WorktreeSuite) TestCheckoutIndexOS(c *C) {
 
 	fs := osfs.New(filepath.Join(dir, "worktree"))
 	w := &Worktree{
-		r:          s.Repository,
 		Filesystem: fs,
+		Storer:     s.Repository.Storer,
 	}
 
 	err = w.Checkout(&CheckoutOptions{})
@@ -560,8 +560,8 @@ func (s *WorktreeSuite) TestCheckoutIndexOS(c *C) {
 
 func (s *WorktreeSuite) TestCheckoutBranch(c *C) {
 	w := &Worktree{
-		r:          s.Repository,
 		Filesystem: memfs.New(),
+		Storer:     s.Repository.Storer,
 	}
 
 	err := w.Checkout(&CheckoutOptions{
@@ -569,7 +569,7 @@ func (s *WorktreeSuite) TestCheckoutBranch(c *C) {
 	})
 	c.Assert(err, IsNil)
 
-	head, err := w.r.Head()
+	head, err := w.Head()
 	c.Assert(err, IsNil)
 	c.Assert(head.Name().String(), Equals, "refs/heads/branch")
 
@@ -580,8 +580,8 @@ func (s *WorktreeSuite) TestCheckoutBranch(c *C) {
 
 func (s *WorktreeSuite) TestCheckoutCreateWithHash(c *C) {
 	w := &Worktree{
-		r:          s.Repository,
 		Filesystem: memfs.New(),
+		Storer:     s.Repository.Storer,
 	}
 
 	err := w.Checkout(&CheckoutOptions{
@@ -591,7 +591,7 @@ func (s *WorktreeSuite) TestCheckoutCreateWithHash(c *C) {
 	})
 	c.Assert(err, IsNil)
 
-	head, err := w.r.Head()
+	head, err := w.Head()
 	c.Assert(err, IsNil)
 	c.Assert(head.Name().String(), Equals, "refs/heads/foo")
 	c.Assert(head.Hash(), Equals, plumbing.NewHash("35e85108805c84807bc66a02d91535e1e24b38b9"))
@@ -603,8 +603,8 @@ func (s *WorktreeSuite) TestCheckoutCreateWithHash(c *C) {
 
 func (s *WorktreeSuite) TestCheckoutCreate(c *C) {
 	w := &Worktree{
-		r:          s.Repository,
 		Filesystem: memfs.New(),
+		Storer:     s.Repository.Storer,
 	}
 
 	err := w.Checkout(&CheckoutOptions{
@@ -613,7 +613,7 @@ func (s *WorktreeSuite) TestCheckoutCreate(c *C) {
 	})
 	c.Assert(err, IsNil)
 
-	head, err := w.r.Head()
+	head, err := w.Head()
 	c.Assert(err, IsNil)
 	c.Assert(head.Name().String(), Equals, "refs/heads/foo")
 	c.Assert(head.Hash(), Equals, plumbing.NewHash("6ecf0ef2c2dffb796033e5a02219af86ec6584e5"))
@@ -625,8 +625,8 @@ func (s *WorktreeSuite) TestCheckoutCreate(c *C) {
 
 func (s *WorktreeSuite) TestCheckoutBranchAndHash(c *C) {
 	w := &Worktree{
-		r:          s.Repository,
 		Filesystem: memfs.New(),
+		Storer:     s.Repository.Storer,
 	}
 
 	err := w.Checkout(&CheckoutOptions{
@@ -639,8 +639,8 @@ func (s *WorktreeSuite) TestCheckoutBranchAndHash(c *C) {
 
 func (s *WorktreeSuite) TestCheckoutCreateMissingBranch(c *C) {
 	w := &Worktree{
-		r:          s.Repository,
 		Filesystem: memfs.New(),
+		Storer:     s.Repository.Storer,
 	}
 
 	err := w.Checkout(&CheckoutOptions{
@@ -658,7 +658,7 @@ func (s *WorktreeSuite) TestCheckoutTag(c *C) {
 
 	err = w.Checkout(&CheckoutOptions{})
 	c.Assert(err, IsNil)
-	head, err := w.r.Head()
+	head, err := w.Head()
 	c.Assert(err, IsNil)
 	c.Assert(head.Name().String(), Equals, "refs/heads/master")
 
@@ -668,21 +668,21 @@ func (s *WorktreeSuite) TestCheckoutTag(c *C) {
 
 	err = w.Checkout(&CheckoutOptions{Branch: "refs/tags/lightweight-tag"})
 	c.Assert(err, IsNil)
-	head, err = w.r.Head()
+	head, err = w.Head()
 	c.Assert(err, IsNil)
 	c.Assert(head.Name().String(), Equals, "HEAD")
 	c.Assert(head.Hash().String(), Equals, "f7b877701fbf855b44c0a9e86f3fdce2c298b07f")
 
 	err = w.Checkout(&CheckoutOptions{Branch: "refs/tags/commit-tag"})
 	c.Assert(err, IsNil)
-	head, err = w.r.Head()
+	head, err = w.Head()
 	c.Assert(err, IsNil)
 	c.Assert(head.Name().String(), Equals, "HEAD")
 	c.Assert(head.Hash().String(), Equals, "f7b877701fbf855b44c0a9e86f3fdce2c298b07f")
 
 	err = w.Checkout(&CheckoutOptions{Branch: "refs/tags/tree-tag"})
 	c.Assert(err, NotNil)
-	head, err = w.r.Head()
+	head, err = w.Head()
 	c.Assert(err, IsNil)
 	c.Assert(head.Name().String(), Equals, "HEAD")
 }
@@ -708,7 +708,7 @@ func (s *WorktreeSuite) testCheckoutBisect(c *C, url string) {
 	w, err := r.Worktree()
 	c.Assert(err, IsNil)
 
-	iter, err := w.r.Log(&LogOptions{})
+	iter, err := r.Log(&LogOptions{})
 	c.Assert(err, IsNil)
 
 	iter.ForEach(func(commit *object.Commit) error {
@@ -726,8 +726,8 @@ func (s *WorktreeSuite) testCheckoutBisect(c *C, url string) {
 func (s *WorktreeSuite) TestStatus(c *C) {
 	fs := memfs.New()
 	w := &Worktree{
-		r:          s.Repository,
 		Filesystem: fs,
+		Storer:     s.Repository.Storer,
 	}
 
 	status, err := w.Status()
@@ -774,9 +774,10 @@ func (s *WorktreeSuite) TestStatusEmptyDirty(c *C) {
 
 func (s *WorktreeSuite) TestReset(c *C) {
 	fs := memfs.New()
+	r := s.Repository
 	w := &Worktree{
-		r:          s.Repository,
 		Filesystem: fs,
+		Storer:     s.Repository.Storer,
 	}
 
 	commit := plumbing.NewHash("35e85108805c84807bc66a02d91535e1e24b38b9")
@@ -784,14 +785,14 @@ func (s *WorktreeSuite) TestReset(c *C) {
 	err := w.Checkout(&CheckoutOptions{})
 	c.Assert(err, IsNil)
 
-	branch, err := w.r.Reference(plumbing.Master, false)
+	branch, err := r.Reference(plumbing.Master, false)
 	c.Assert(err, IsNil)
 	c.Assert(branch.Hash(), Not(Equals), commit)
 
 	err = w.Reset(&ResetOptions{Mode: MergeReset, Commit: commit})
 	c.Assert(err, IsNil)
 
-	branch, err = w.r.Reference(plumbing.Master, false)
+	branch, err = r.Reference(plumbing.Master, false)
 	c.Assert(err, IsNil)
 	c.Assert(branch.Hash(), Equals, commit)
 
@@ -803,8 +804,8 @@ func (s *WorktreeSuite) TestReset(c *C) {
 func (s *WorktreeSuite) TestResetWithUntracked(c *C) {
 	fs := memfs.New()
 	w := &Worktree{
-		r:          s.Repository,
 		Filesystem: fs,
+		Storer:     s.Repository.Storer,
 	}
 
 	commit := plumbing.NewHash("35e85108805c84807bc66a02d91535e1e24b38b9")
@@ -825,9 +826,10 @@ func (s *WorktreeSuite) TestResetWithUntracked(c *C) {
 
 func (s *WorktreeSuite) TestResetSoft(c *C) {
 	fs := memfs.New()
+	r := s.Repository
 	w := &Worktree{
-		r:          s.Repository,
 		Filesystem: fs,
+		Storer:     s.Repository.Storer,
 	}
 
 	commit := plumbing.NewHash("35e85108805c84807bc66a02d91535e1e24b38b9")
@@ -838,7 +840,7 @@ func (s *WorktreeSuite) TestResetSoft(c *C) {
 	err = w.Reset(&ResetOptions{Mode: SoftReset, Commit: commit})
 	c.Assert(err, IsNil)
 
-	branch, err := w.r.Reference(plumbing.Master, false)
+	branch, err := r.Reference(plumbing.Master, false)
 	c.Assert(err, IsNil)
 	c.Assert(branch.Hash(), Equals, commit)
 
@@ -850,9 +852,10 @@ func (s *WorktreeSuite) TestResetSoft(c *C) {
 
 func (s *WorktreeSuite) TestResetMixed(c *C) {
 	fs := memfs.New()
+	r := s.Repository
 	w := &Worktree{
-		r:          s.Repository,
 		Filesystem: fs,
+		Storer:     s.Repository.Storer,
 	}
 
 	commit := plumbing.NewHash("35e85108805c84807bc66a02d91535e1e24b38b9")
@@ -863,7 +866,7 @@ func (s *WorktreeSuite) TestResetMixed(c *C) {
 	err = w.Reset(&ResetOptions{Mode: MixedReset, Commit: commit})
 	c.Assert(err, IsNil)
 
-	branch, err := w.r.Reference(plumbing.Master, false)
+	branch, err := r.Reference(plumbing.Master, false)
 	c.Assert(err, IsNil)
 	c.Assert(branch.Hash(), Equals, commit)
 
@@ -875,9 +878,10 @@ func (s *WorktreeSuite) TestResetMixed(c *C) {
 
 func (s *WorktreeSuite) TestResetMerge(c *C) {
 	fs := memfs.New()
+	r := s.Repository
 	w := &Worktree{
-		r:          s.Repository,
 		Filesystem: fs,
+		Storer:     s.Repository.Storer,
 	}
 
 	commitA := plumbing.NewHash("918c48b83bd081e863dbe1b80f8998f058cd8294")
@@ -889,7 +893,7 @@ func (s *WorktreeSuite) TestResetMerge(c *C) {
 	err = w.Reset(&ResetOptions{Mode: MergeReset, Commit: commitA})
 	c.Assert(err, IsNil)
 
-	branch, err := w.r.Reference(plumbing.Master, false)
+	branch, err := r.Reference(plumbing.Master, false)
 	c.Assert(err, IsNil)
 	c.Assert(branch.Hash(), Equals, commitA)
 
@@ -903,16 +907,17 @@ func (s *WorktreeSuite) TestResetMerge(c *C) {
 	err = w.Reset(&ResetOptions{Mode: MergeReset, Commit: commitB})
 	c.Assert(err, Equals, ErrUnstagedChanges)
 
-	branch, err = w.r.Reference(plumbing.Master, false)
+	branch, err = r.Reference(plumbing.Master, false)
 	c.Assert(err, IsNil)
 	c.Assert(branch.Hash(), Equals, commitA)
 }
 
 func (s *WorktreeSuite) TestResetHard(c *C) {
 	fs := memfs.New()
+	r := s.Repository
 	w := &Worktree{
-		r:          s.Repository,
 		Filesystem: fs,
+		Storer:     s.Repository.Storer,
 	}
 
 	commit := plumbing.NewHash("35e85108805c84807bc66a02d91535e1e24b38b9")
@@ -930,7 +935,7 @@ func (s *WorktreeSuite) TestResetHard(c *C) {
 	err = w.Reset(&ResetOptions{Mode: HardReset, Commit: commit})
 	c.Assert(err, IsNil)
 
-	branch, err := w.r.Reference(plumbing.Master, false)
+	branch, err := r.Reference(plumbing.Master, false)
 	c.Assert(err, IsNil)
 	c.Assert(branch.Hash(), Equals, commit)
 }
@@ -938,8 +943,8 @@ func (s *WorktreeSuite) TestResetHard(c *C) {
 func (s *WorktreeSuite) TestStatusAfterCheckout(c *C) {
 	fs := memfs.New()
 	w := &Worktree{
-		r:          s.Repository,
 		Filesystem: fs,
+		Storer:     s.Repository.Storer,
 	}
 
 	err := w.Checkout(&CheckoutOptions{Force: true})
@@ -958,8 +963,8 @@ func (s *WorktreeSuite) TestStatusModified(c *C) {
 
 	fs := osfs.New(filepath.Join(dir, "worktree"))
 	w := &Worktree{
-		r:          s.Repository,
 		Filesystem: fs,
+		Storer:     s.Repository.Storer,
 	}
 
 	err = w.Checkout(&CheckoutOptions{})
@@ -981,8 +986,8 @@ func (s *WorktreeSuite) TestStatusModified(c *C) {
 func (s *WorktreeSuite) TestStatusIgnored(c *C) {
 	fs := memfs.New()
 	w := &Worktree{
-		r:          s.Repository,
 		Filesystem: fs,
+		Storer:     s.Repository.Storer,
 	}
 
 	w.Checkout(&CheckoutOptions{})
@@ -1028,8 +1033,8 @@ func (s *WorktreeSuite) TestStatusIgnored(c *C) {
 func (s *WorktreeSuite) TestStatusUntracked(c *C) {
 	fs := memfs.New()
 	w := &Worktree{
-		r:          s.Repository,
 		Filesystem: fs,
+		Storer:     s.Repository.Storer,
 	}
 
 	err := w.Checkout(&CheckoutOptions{Force: true})
@@ -1052,8 +1057,8 @@ func (s *WorktreeSuite) TestStatusDeleted(c *C) {
 
 	fs := osfs.New(filepath.Join(dir, "worktree"))
 	w := &Worktree{
-		r:          s.Repository,
 		Filesystem: fs,
+		Storer:     s.Repository.Storer,
 	}
 
 	err = w.Checkout(&CheckoutOptions{})
@@ -1099,14 +1104,14 @@ func (s *WorktreeSuite) TestSubmodules(c *C) {
 func (s *WorktreeSuite) TestAddUntracked(c *C) {
 	fs := memfs.New()
 	w := &Worktree{
-		r:          s.Repository,
 		Filesystem: fs,
+		Storer:     s.Repository.Storer,
 	}
 
 	err := w.Checkout(&CheckoutOptions{Force: true})
 	c.Assert(err, IsNil)
 
-	idx, err := w.r.Storer.Index()
+	idx, err := w.Storer.Index()
 	c.Assert(err, IsNil)
 	c.Assert(idx.Entries, HasLen, 9)
 
@@ -1117,7 +1122,7 @@ func (s *WorktreeSuite) TestAddUntracked(c *C) {
 	c.Assert(hash.String(), Equals, "d96c7efbfec2814ae0301ad054dc8d9fc416c9b5")
 	c.Assert(err, IsNil)
 
-	idx, err = w.r.Storer.Index()
+	idx, err = w.Storer.Index()
 	c.Assert(err, IsNil)
 	c.Assert(idx.Entries, HasLen, 10)
 
@@ -1134,7 +1139,7 @@ func (s *WorktreeSuite) TestAddUntracked(c *C) {
 	c.Assert(file.Staging, Equals, Added)
 	c.Assert(file.Worktree, Equals, Unmodified)
 
-	obj, err := w.r.Storer.EncodedObject(plumbing.BlobObject, hash)
+	obj, err := w.Storer.EncodedObject(plumbing.BlobObject, hash)
 	c.Assert(err, IsNil)
 	c.Assert(obj, NotNil)
 	c.Assert(obj.Size(), Equals, int64(3))
@@ -1200,14 +1205,14 @@ func (s *WorktreeSuite) TestExcludedNoGitignore(c *C) {
 func (s *WorktreeSuite) TestAddModified(c *C) {
 	fs := memfs.New()
 	w := &Worktree{
-		r:          s.Repository,
 		Filesystem: fs,
+		Storer:     s.Repository.Storer,
 	}
 
 	err := w.Checkout(&CheckoutOptions{Force: true})
 	c.Assert(err, IsNil)
 
-	idx, err := w.r.Storer.Index()
+	idx, err := w.Storer.Index()
 	c.Assert(err, IsNil)
 	c.Assert(idx.Entries, HasLen, 9)
 
@@ -1218,7 +1223,7 @@ func (s *WorktreeSuite) TestAddModified(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(hash.String(), Equals, "d96c7efbfec2814ae0301ad054dc8d9fc416c9b5")
 
-	idx, err = w.r.Storer.Index()
+	idx, err = w.Storer.Index()
 	c.Assert(err, IsNil)
 	c.Assert(idx.Entries, HasLen, 9)
 
@@ -1239,8 +1244,8 @@ func (s *WorktreeSuite) TestAddModified(c *C) {
 func (s *WorktreeSuite) TestAddUnmodified(c *C) {
 	fs := memfs.New()
 	w := &Worktree{
-		r:          s.Repository,
 		Filesystem: fs,
+		Storer:     s.Repository.Storer,
 	}
 
 	err := w.Checkout(&CheckoutOptions{Force: true})
@@ -1254,14 +1259,14 @@ func (s *WorktreeSuite) TestAddUnmodified(c *C) {
 func (s *WorktreeSuite) TestAddRemoved(c *C) {
 	fs := memfs.New()
 	w := &Worktree{
-		r:          s.Repository,
 		Filesystem: fs,
+		Storer:     s.Repository.Storer,
 	}
 
 	err := w.Checkout(&CheckoutOptions{Force: true})
 	c.Assert(err, IsNil)
 
-	idx, err := w.r.Storer.Index()
+	idx, err := w.Storer.Index()
 	c.Assert(err, IsNil)
 	c.Assert(idx.Entries, HasLen, 9)
 
@@ -1307,7 +1312,7 @@ func (s *WorktreeSuite) TestAddSymlink(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(h, Equals, plumbing.NewHash("19102815663d23f8b75a47e7a01965dcdc96468c"))
 
-	obj, err := w.r.Storer.EncodedObject(plumbing.BlobObject, h)
+	obj, err := w.Storer.EncodedObject(plumbing.BlobObject, h)
 	c.Assert(err, IsNil)
 	c.Assert(obj, NotNil)
 	c.Assert(obj.Size(), Equals, int64(3))
@@ -1316,14 +1321,14 @@ func (s *WorktreeSuite) TestAddSymlink(c *C) {
 func (s *WorktreeSuite) TestAddDirectory(c *C) {
 	fs := memfs.New()
 	w := &Worktree{
-		r:          s.Repository,
 		Filesystem: fs,
+		Storer:     s.Repository.Storer,
 	}
 
 	err := w.Checkout(&CheckoutOptions{Force: true})
 	c.Assert(err, IsNil)
 
-	idx, err := w.r.Storer.Index()
+	idx, err := w.Storer.Index()
 	c.Assert(err, IsNil)
 	c.Assert(idx.Entries, HasLen, 9)
 
@@ -1336,7 +1341,7 @@ func (s *WorktreeSuite) TestAddDirectory(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(h.IsZero(), Equals, true)
 
-	idx, err = w.r.Storer.Index()
+	idx, err = w.Storer.Index()
 	c.Assert(err, IsNil)
 	c.Assert(idx.Entries, HasLen, 11)
 
@@ -1373,14 +1378,14 @@ func (s *WorktreeSuite) TestAddDirectoryErrorNotFound(c *C) {
 func (s *WorktreeSuite) TestAddGlob(c *C) {
 	fs := memfs.New()
 	w := &Worktree{
-		r:          s.Repository,
 		Filesystem: fs,
+		Storer:     s.Repository.Storer,
 	}
 
 	err := w.Checkout(&CheckoutOptions{Force: true})
 	c.Assert(err, IsNil)
 
-	idx, err := w.r.Storer.Index()
+	idx, err := w.Storer.Index()
 	c.Assert(err, IsNil)
 	c.Assert(idx.Entries, HasLen, 9)
 
@@ -1394,7 +1399,7 @@ func (s *WorktreeSuite) TestAddGlob(c *C) {
 	err = w.AddGlob(w.Filesystem.Join("qux", "b*"))
 	c.Assert(err, IsNil)
 
-	idx, err = w.r.Storer.Index()
+	idx, err = w.Storer.Index()
 	c.Assert(err, IsNil)
 	c.Assert(idx.Entries, HasLen, 11)
 
@@ -1434,8 +1439,8 @@ func (s *WorktreeSuite) TestAddGlobErrorNoMatches(c *C) {
 func (s *WorktreeSuite) TestRemove(c *C) {
 	fs := memfs.New()
 	w := &Worktree{
-		r:          s.Repository,
 		Filesystem: fs,
+		Storer:     s.Repository.Storer,
 	}
 
 	err := w.Checkout(&CheckoutOptions{Force: true})
@@ -1454,8 +1459,8 @@ func (s *WorktreeSuite) TestRemove(c *C) {
 func (s *WorktreeSuite) TestRemoveNotExistentEntry(c *C) {
 	fs := memfs.New()
 	w := &Worktree{
-		r:          s.Repository,
 		Filesystem: fs,
+		Storer:     s.Repository.Storer,
 	}
 
 	err := w.Checkout(&CheckoutOptions{Force: true})
@@ -1469,8 +1474,8 @@ func (s *WorktreeSuite) TestRemoveNotExistentEntry(c *C) {
 func (s *WorktreeSuite) TestRemoveDirectory(c *C) {
 	fs := memfs.New()
 	w := &Worktree{
-		r:          s.Repository,
 		Filesystem: fs,
+		Storer:     s.Repository.Storer,
 	}
 
 	err := w.Checkout(&CheckoutOptions{Force: true})
@@ -1493,8 +1498,8 @@ func (s *WorktreeSuite) TestRemoveDirectory(c *C) {
 func (s *WorktreeSuite) TestRemoveDirectoryUntracked(c *C) {
 	fs := memfs.New()
 	w := &Worktree{
-		r:          s.Repository,
 		Filesystem: fs,
+		Storer:     s.Repository.Storer,
 	}
 
 	err := w.Checkout(&CheckoutOptions{Force: true})
@@ -1521,8 +1526,8 @@ func (s *WorktreeSuite) TestRemoveDirectoryUntracked(c *C) {
 func (s *WorktreeSuite) TestRemoveDeletedFromWorktree(c *C) {
 	fs := memfs.New()
 	w := &Worktree{
-		r:          s.Repository,
 		Filesystem: fs,
+		Storer:     s.Repository.Storer,
 	}
 
 	err := w.Checkout(&CheckoutOptions{Force: true})
@@ -1544,8 +1549,8 @@ func (s *WorktreeSuite) TestRemoveDeletedFromWorktree(c *C) {
 func (s *WorktreeSuite) TestRemoveGlob(c *C) {
 	fs := memfs.New()
 	w := &Worktree{
-		r:          s.Repository,
 		Filesystem: fs,
+		Storer:     s.Repository.Storer,
 	}
 
 	err := w.Checkout(&CheckoutOptions{Force: true})
@@ -1563,8 +1568,8 @@ func (s *WorktreeSuite) TestRemoveGlob(c *C) {
 func (s *WorktreeSuite) TestRemoveGlobDirectory(c *C) {
 	fs := memfs.New()
 	w := &Worktree{
-		r:          s.Repository,
 		Filesystem: fs,
+		Storer:     s.Repository.Storer,
 	}
 
 	err := w.Checkout(&CheckoutOptions{Force: true})
@@ -1586,8 +1591,8 @@ func (s *WorktreeSuite) TestRemoveGlobDirectory(c *C) {
 func (s *WorktreeSuite) TestRemoveGlobDirectoryDeleted(c *C) {
 	fs := memfs.New()
 	w := &Worktree{
-		r:          s.Repository,
 		Filesystem: fs,
+		Storer:     s.Repository.Storer,
 	}
 
 	err := w.Checkout(&CheckoutOptions{Force: true})
@@ -1612,8 +1617,8 @@ func (s *WorktreeSuite) TestRemoveGlobDirectoryDeleted(c *C) {
 func (s *WorktreeSuite) TestMove(c *C) {
 	fs := memfs.New()
 	w := &Worktree{
-		r:          s.Repository,
 		Filesystem: fs,
+		Storer:     s.Repository.Storer,
 	}
 
 	err := w.Checkout(&CheckoutOptions{Force: true})
@@ -1634,8 +1639,8 @@ func (s *WorktreeSuite) TestMove(c *C) {
 func (s *WorktreeSuite) TestMoveNotExistentEntry(c *C) {
 	fs := memfs.New()
 	w := &Worktree{
-		r:          s.Repository,
 		Filesystem: fs,
+		Storer:     s.Repository.Storer,
 	}
 
 	err := w.Checkout(&CheckoutOptions{Force: true})
@@ -1649,8 +1654,8 @@ func (s *WorktreeSuite) TestMoveNotExistentEntry(c *C) {
 func (s *WorktreeSuite) TestMoveToExistent(c *C) {
 	fs := memfs.New()
 	w := &Worktree{
-		r:          s.Repository,
 		Filesystem: fs,
+		Storer:     s.Repository.Storer,
 	}
 
 	err := w.Checkout(&CheckoutOptions{Force: true})
