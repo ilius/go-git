@@ -555,15 +555,15 @@ func (s *SuiteCommit) testDiffCommitCTime(c *C, startHash string, stopHash strin
 func (s *SuiteCommit) TestDiffCommitCTime1(c *C) {
 	s.testDiffCommitCTime(
 		c,
-		"6ecf0ef2c2dffb796033e5a02219af86ec6584e5", // 2015-04-05T23:30:47+02:00
-		"35e85108805c84807bc66a02d91535e1e24b38b9", // 2015-03-31T13:46:24+02:00
+		"6ecf0ef2c2dffb796033e5a02219af86ec6584e5", // vendor stuff
+		"a5b8b09e2f8fcb0bb99d3ccb0958157b40890d69", // Merge pull request #1 from dripolles/feature
 		// expected:
 		[]string{
-			"6ecf0ef2c2dffb796033e5a02219af86ec6584e5", // 2015-04-05T23:30:47+02:00
-			"918c48b83bd081e863dbe1b80f8998f058cd8294", // 2015-03-31T13:56:18+02:00
-			"af2d6a6954d532f8ffb47615169c8fdf9d383a1a", // 2015-03-31T13:51:51+02:00
-			"1669dce138d9b841a518c64b10914d88f5e488ea", // 2015-03-31T13:48:14+02:00
-			"a5b8b09e2f8fcb0bb99d3ccb0958157b40890d69", // 2015-03-31T13:47:14+02:00
+			"6ecf0ef2c2dffb796033e5a02219af86ec6584e5", // vendor stuff
+			"918c48b83bd081e863dbe1b80f8998f058cd8294", // some code
+			"af2d6a6954d532f8ffb47615169c8fdf9d383a1a", // some json
+			"1669dce138d9b841a518c64b10914d88f5e488ea", // Merge branch 'master' of github.com:tyba/git-fixture
+			"35e85108805c84807bc66a02d91535e1e24b38b9", // binary file
 		},
 	)
 }
@@ -571,8 +571,8 @@ func (s *SuiteCommit) TestDiffCommitCTime1(c *C) {
 func (s *SuiteCommit) TestDiffCommitCTime2(c *C) {
 	s.testDiffCommitCTime(
 		c,
-		"35e85108805c84807bc66a02d91535e1e24b38b9", // 2015-03-31T13:46:24+02:00
-		"6ecf0ef2c2dffb796033e5a02219af86ec6584e5", // 2015-04-05T23:30:47+02:00
+		"35e85108805c84807bc66a02d91535e1e24b38b9", // binary file
+		"6ecf0ef2c2dffb796033e5a02219af86ec6584e5", // vendor stuff
 		// expected:
 		[]string{},
 	)
