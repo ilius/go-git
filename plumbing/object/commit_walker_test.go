@@ -137,7 +137,7 @@ func (s *CommitWalkerSuite) TestCommitCTimeIterator(c *C) {
 	commit := s.commit(c, plumbing.NewHash(s.Fixture.Head))
 
 	var commits []*Commit
-	NewCommitIterCTime(commit, nil, nil).ForEach(func(c *Commit) error {
+	NewCommitIterCTime(commit, nil, nil, false).ForEach(func(c *Commit) error {
 		commits = append(commits, c)
 		return nil
 	})
@@ -165,7 +165,7 @@ func (s *CommitWalkerSuite) TestCommitCTimeIteratorWithIgnore(c *C) {
 	var commits []*Commit
 	NewCommitIterCTime(commit, nil, []plumbing.Hash{
 		plumbing.NewHash("af2d6a6954d532f8ffb47615169c8fdf9d383a1a"),
-	}).ForEach(func(c *Commit) error {
+	}, false).ForEach(func(c *Commit) error {
 		commits = append(commits, c)
 		return nil
 	})

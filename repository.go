@@ -1167,15 +1167,25 @@ func (*Repository) logWithLimit(commitIter object.CommitIter, limitOptions objec
 }
 
 // LogRange returns the commit history from the given LogOptions excuding commits reachable from `end`
-// only Order=LogOrderCommitterTime is supported
+// only Order=LogOrderCommitterTime|LogOrderCommitterTimeReverse is supported
 // we may add support for other time-based orders
-// like LogOrderCommitterTimeReverse, LogOrderAuthorTime, etc
+// like LogOrderAuthorTime, etc
 func (r *Repository) LogRange(o *LogRangeOptions) (object.CommitIter, error) {
+	var before func(*object.Commit, *object.Commit) bool
 	switch o.Order {
 	case LogOrderCommitterTime:
-		break
+		before = func(a *object.Commit, b *object.Commit) bool {
+			return a.Committer.When.After(b.Committer.When)
+		}
+	case LogOrderCommitterTimeReverse:
+		before = func(a *object.Commit, b *object.Commit) bool {
+			return a.Committer.When.Before(b.Committer.When)
+		}
 	case LogOrderDefault:
 		o.Order = LogOrderCommitterTime
+		before = func(a *object.Commit, b *object.Commit) bool {
+			return a.Committer.When.After(b.Committer.When)
+		}
 	default:
 		return nil, fmt.Errorf("unsupported order")
 	}
@@ -1188,11 +1198,6 @@ func (r *Repository) LogRange(o *LogRangeOptions) (object.CommitIter, error) {
 	end_iter, err := r.Log(&end_o)
 	if err != nil {
 		return nil, err
-	}
-	var before func(*object.Commit, *object.Commit) bool
-	// we may check `o.Order` later and set `before` func based on that
-	before = func(a *object.Commit, b *object.Commit) bool {
-		return a.Committer.When.After(b.Committer.When)
 	}
 	return object.DiffCommitIter(r.Storer, iter, end_iter, before)
 }
@@ -1217,7 +1222,11 @@ func commitIterFunc(order LogOrder) func(c *object.Commit) object.CommitIter {
 		}
 	case LogOrderCommitterTime:
 		return func(c *object.Commit) object.CommitIter {
-			return object.NewCommitIterCTime(c, nil, nil)
+			return object.NewCommitIterCTime(c, nil, nil, false)
+		}
+	case LogOrderCommitterTimeReverse:
+		return func(c *object.Commit) object.CommitIter {
+			return object.NewCommitIterCTime(c, nil, nil, true)
 		}
 	}
 	return nil

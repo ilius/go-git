@@ -27,18 +27,30 @@ func NewCommitIterCTime(
 	c *Commit,
 	seenExternal map[plumbing.Hash]bool,
 	ignore []plumbing.Hash,
+	reverse bool,
 ) CommitIter {
 	seen := make(map[plumbing.Hash]bool)
 	for _, h := range ignore {
 		seen[h] = true
 	}
-
-	heap := binaryheap.NewWith(func(a, b interface{}) int {
-		if a.(*Commit).Committer.When.Before(b.(*Commit).Committer.When) {
-			return 1
+	var comparator func(a, b interface{}) int
+	if reverse {
+		comparator = func(a, b interface{}) int {
+			if a.(*Commit).Committer.When.After(b.(*Commit).Committer.When) {
+				return 1
+			}
+			return -1
+		}	
+	} else {
+		comparator = func(a, b interface{}) int {
+			if a.(*Commit).Committer.When.Before(b.(*Commit).Committer.When) {
+				return 1
+			}
+			return -1
 		}
-		return -1
-	})
+	}
+
+	heap := binaryheap.NewWith(comparator)
 	heap.Push(c)
 
 	return &commitIteratorByCTime{

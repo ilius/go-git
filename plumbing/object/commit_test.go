@@ -530,8 +530,8 @@ func (s *SuiteCommit) testDiffCommitCTime(c *C, startHash string, stopHash strin
 	startCommit := s.commit(c, plumbing.NewHash(startHash))
 	stopCommit := s.commit(c, plumbing.NewHash(stopHash))
 
-	startIter := NewCommitIterCTime(startCommit, nil, nil)
-	stopIter := NewCommitIterCTime(stopCommit, nil, nil)
+	startIter := NewCommitIterCTime(startCommit, nil, nil, false)
+	stopIter := NewCommitIterCTime(stopCommit, nil, nil, false)
 	before := func(a *Commit, b *Commit) bool {
 		return a.Committer.When.After(b.Committer.When)
 	}

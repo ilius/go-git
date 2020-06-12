@@ -330,6 +330,7 @@ const (
 	LogOrderDFSPost
 	LogOrderBSF
 	LogOrderCommitterTime
+	LogOrderCommitterTimeReverse
 )
 
 // LogOptions describes how a log action should be performed.
